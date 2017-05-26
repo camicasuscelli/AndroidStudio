@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
     void mostrarListaDispositivos(){
 
+        //dispositivosVisibles = btAdapter.getBondedDevices();
         dispositivosVisibles = btAdapter.getBondedDevices();
         ArrayList lista = new ArrayList();
 

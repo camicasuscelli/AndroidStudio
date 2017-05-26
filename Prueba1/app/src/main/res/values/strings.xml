@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Prueba1</string>
     <string name="sensor_unsupported">No se puede activar sensor</string>
+    <string name="speech_prompt">Say something!</string>
 </resources>

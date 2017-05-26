@@ -1,9 +1,11 @@
 package com.example.cami.prueba1;
 
+import android.content.ActivityNotFoundException;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.bluetooth.BluetoothSocket;
@@ -13,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.app.ProgressDialog;
@@ -20,12 +23,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.AsyncTask;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Locale;
 import java.util.UUID;
 
 public class botoneraManual extends AppCompatActivity implements SensorEventListener{
 
-    Button btnLedOn, btnLedOff, btnDis, btnServoDOn, btnServoDOff, btnServoTOn, btnServoTOff,
-            btnMarchaAtras, btnDisplay;
+    Button btnLedOn, btnLedOff, btnDis, btnServoDOn, btnServoDOff, btnServoTOn, btnServoTOff;
+    ImageButton ibHablar;
     CheckBox checkBox;
     String address = null;
     private ProgressDialog progress;
@@ -34,6 +39,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     private boolean isBtConnected = false;
     static final UUID miUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
+    private final int REQ_CODE_SPEECH_INPUT = 100;
     //declaro un sensor manager
     private SensorManager sensorManager;
 
@@ -55,8 +61,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         btnServoDOff = (Button) findViewById(R.id.btnservodoff);
         btnServoTOn = (Button) findViewById(R.id.btnservoton);
         btnServoTOff = (Button) findViewById(R.id.btnservotoff);
-        btnMarchaAtras = (Button) findViewById(R.id.btnmarchaatras);
-        btnDisplay = (Button) findViewById(R.id.btndisplay);
+       // btnMarchaAtras = (Button) findViewById(R.id.btnmarchaatras);
+       // btnDisplay = (Button) findViewById(R.id.btndisplay);
+        ibHablar = (ImageButton) findViewById(R.id.ibhablar);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
@@ -153,29 +160,6 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         msg("sensor apagado");
     }
 
-
-  /*  private SensorEventListener shakeSensorListener = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-
-            int sensorType = event.sensor.getType();
-            float[] values = event.values;
-            if(sensorType == Sensor.TYPE_ACCELEROMETER){
-                if((Math.abs(values[0])> ACC) || Math.abs(values[1])>ACC || Math.abs(values[2])>ACC){
-                    Log.i("sensor", "running");
-                    //acá envío el dato, es decir cuando se sensa el shake.
-                    //poner método del servicio que envia datos a arduino!
-                    msg("Se mueve el celular");
-                }
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
-    };*/
-
     private void incializarListeners() {
         checkBox.setOnClickListener(new View.OnClickListener(){
             @Override
@@ -219,6 +203,52 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             }
         });
 
+        ibHablar.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                //empieza a funcionar el microfono:
+                speechInput();
+            }
+        });
+
+    }
+
+    private void speechInput() {
+        //voy a mostrar un cuadro de dialogo para hablar y debería reconocer la voz.
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_prompt));
+
+        try{
+            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
+        }catch(ActivityNotFoundException a){
+            msg("no soporta reconocimiento");
+        }
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode){
+            case REQ_CODE_SPEECH_INPUT: {
+                if (resultCode == RESULT_OK && null!= data){
+                    ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    //ACÁ VA A ENVIAR RESULT[0] POR LA MENSAJERIA
+                    if(result.get(0).equalsIgnoreCase("marcha atrás")){
+                        //aca enviaria el mensaje
+                        msg(result.get(0));
+                    }
+                    else{
+                        if(result.get(0).equalsIgnoreCase("mostrar display")){
+                            msg(result.get(0));
+                        }
+                    }
+
+                }
+            }
+        }
     }
 
     private void modoAutomatico(){
