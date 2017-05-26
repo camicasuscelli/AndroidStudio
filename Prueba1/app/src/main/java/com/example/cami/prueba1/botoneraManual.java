@@ -22,7 +22,7 @@ import android.os.AsyncTask;
 import java.io.IOException;
 import java.util.UUID;
 
-public class botoneraManual extends AppCompatActivity {
+public class botoneraManual extends AppCompatActivity implements SensorEventListener{
 
     Button btnLedOn, btnLedOff, btnDis, btnServoDOn, btnServoDOff, btnServoTOn, btnServoTOff,
             btnMarchaAtras, btnDisplay;
@@ -37,7 +37,7 @@ public class botoneraManual extends AppCompatActivity {
     //declaro un sensor manager
     private SensorManager sensorManager;
 
-    private final static float ACC = 30;
+    private final static float ACC = 15;
 
     //////////////////fases del ciclo de vida de la activity.
     @Override
@@ -81,39 +81,62 @@ public class botoneraManual extends AppCompatActivity {
         super.onResume();
         //acá creo los servicios de escucha de los sensores del celular.
         //REGISTRAR SENSOR:
-        //registerSenser();
+        registerSenser();
 
     }
 
     @Override
     protected void onStop(){
-        //unregisterSenser();
+        unregisterSenser();
         super.onStop();
     }
 
     @Override
     protected void onPause(){
-       // unregisterSenser();
+        unregisterSenser();
         super.onPause();
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        int sensorType = event.sensor.getType();
+        float[] values = event.values;
+
+        if(sensorType == Sensor.TYPE_ACCELEROMETER){
+            if(Math.abs(values[0]) > ACC || Math.abs(values[1]) > ACC || Math.abs(values[2]) > ACC){
+                Log.i("sensor", "running");
+                msg("Movimiento detectado");
+                //acá enviaría un mensaje para encender el actuador correspondiente.
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 
     ///////////////////Métodos custom//////////////////////////////
 
-   /* private void registerSenser(){
+    private void registerSenser(){
 
         boolean done;
-        done = sensorManager.registerListener(shakeSensorListener,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        done = sensorManager.registerListener(this,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
 
         if(!done){
             Toast.makeText(getApplicationContext(),getResources().getString(R.string.sensor_unsupported), Toast.LENGTH_SHORT).show();
         }
         Log.i("sensor", "register");
-    }*/
+        msg("sensor encendido");
+    }
 
-   /* private void unregisterSenser(){
-        sensorManager.unregisterListener(shakeSensorListener);
+    private void unregisterSenser(){
+        sensorManager.unregisterListener(this);
         Log.i("sensor", "unregister");
-    }*/
+        msg("sensor apagado");
+    }
+
 
   /*  private SensorEventListener shakeSensorListener = new SensorEventListener() {
         @Override
@@ -241,13 +264,14 @@ public class botoneraManual extends AppCompatActivity {
         finish(); //vuelve al primer layout.
 
     }
+}
 
     ///////////////////////esta clase se descarta y se genera un servicio para envíar los datos.
     //Esta clase inicia la conexión:
 
     //FALTA LLAMAR A LA CLASE PARA CONECTAR
 
-    private class ConnectBT extends AsyncTask<Void, Void, Void>{
+/*    private class ConnectBT extends AsyncTask<Void, Void, Void>{
         private boolean ConnectSuccess = true;
 
         @Override
@@ -288,7 +312,7 @@ public class botoneraManual extends AppCompatActivity {
         }
     }
 
-}
+}*/
 
 //aclaracion: los listener de los sensores deberian ir en onresume para evitar que se ejecuten cuando esta onpause
 //los listener de botones pueden estar en start, no hay problema.
