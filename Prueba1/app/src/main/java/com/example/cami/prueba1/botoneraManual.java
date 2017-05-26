@@ -38,6 +38,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     private SensorManager sensorManager;
 
     private final static float ACC = 15;
+    int flagLuces=0;
 
     //////////////////fases del ciclo de vida de la activity.
     @Override
@@ -109,6 +110,20 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                 msg("Movimiento detectado");
                 //acá enviaría un mensaje para encender el actuador correspondiente.
             }
+        }else {
+            if (sensorType == Sensor.TYPE_LIGHT){
+                if(Math.abs(values[0])<=50 && flagLuces==1){
+                    Log.i("sensor luz", "evento");
+                    msg("Se encienden las luces del led");
+                    flagLuces=0;
+                }else{
+                    if(Math.abs(values[0])>50 && flagLuces==0){
+                        Log.i("sensor luz", "apagar");
+                        msg("Se apagan las luces del led");
+                        flagLuces =1;
+                    }
+                }
+            }
         }
     }
 
@@ -123,6 +138,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
 
         boolean done;
         done = sensorManager.registerListener(this,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_NORMAL);
 
         if(!done){
             Toast.makeText(getApplicationContext(),getResources().getString(R.string.sensor_unsupported), Toast.LENGTH_SHORT).show();
