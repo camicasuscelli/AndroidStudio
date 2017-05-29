@@ -1,5 +1,8 @@
 package com.example.cami.prueba1;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -27,8 +30,9 @@ public class MainActivity extends AppCompatActivity {
     private Set<BluetoothDevice> dispositivosVisibles;
 
     //creo las variables del xml.
-    Button btnShowDevices;
-    ListView lvListaDispositivos;
+    Button btnShowDevices, btnSearchDev;
+    ListView lvListaDispositivos, lvListaAvailable;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
         //ligo variables a xml:
         btnShowDevices = (Button) findViewById(R.id.btnShowDevices);
         lvListaDispositivos = (ListView) findViewById(R.id.lvListaDispositivos);
+        btnSearchDev = (Button) findViewById(R.id.btnbuscardisp);
+        lvListaAvailable = (ListView) findViewById(R.id.lvDevDisp);
 
         //muestro por pantalla que está pasando al estado Created.
         Toast.makeText(this, "On-create()",Toast.LENGTH_LONG).show();
@@ -47,18 +53,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart(){
         super.onStart();
-        Toast.makeText(getApplicationContext(),"onStart()",Toast.LENGTH_LONG).show();
-    }
-
-
-
-    @Override
-    protected void onResume(){
-        super.onResume();
-
-        //acá ejecuto una función para linkear el adaptador
-        linkearBluetooth();
-
+        //Toast.makeText(getApplicationContext(),"onStart()",Toast.LENGTH_LONG).show();
         btnShowDevices.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -67,6 +62,76 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        btnSearchDev.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                buscarDispositivos();
+            }
+        });
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+
+        //acá ejecuto una función para linkear el adaptador
+        linkearBluetooth();
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        btAdapter.cancelDiscovery();
+    }
+
+    private void buscarDispositivos() {
+        //creo un receptor de broadcast
+        final  ArrayList lista = new ArrayList();
+        final BroadcastReceiver bReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+
+                String action = intent.getAction();
+                //cuando encuentra un dispositivo:
+                if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                    //obtengo el device del intent
+                    BluetoothDevice dispositivo = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    //lo muestro en una lista de adaptadores.
+                    lista.add(dispositivo.getName() + "\n" + dispositivo.getAddress());
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(bReceiver, filter);
+        final ArrayAdapter adaptador = new ArrayAdapter(this, android.R.layout.simple_list_item_1, lista);
+        lvListaAvailable.setAdapter(adaptador);
+        lvListaAvailable.setOnItemClickListener(listener);
+
+    }
+    private AdapterView.OnItemClickListener listener = new AdapterView.OnItemClickListener(){
+        public void onItemClick(AdapterView av, View v, int arg2, long arg3){
+
+            //tengo que establecer la conexión
+            //obtengo la mac del dispositivo, los ultimos 17 char
+            String info = ((TextView) v).getText().toString();
+            String address = info.substring(info.length() - 17);
+            //una vez que obtengo los datos del dispositivo tengo que hacer que se conozcan:
+
+            //FALTA EL SUBPROCESO QUE CONECTA EL BLUETOOTH CON EL OTRO DISPOSITIVO.
+
+            //inicio nueva actividad:
+            //tengo que hacerlo un método.
+            iniciarBotonera(address);
+        }
+    };
+
+    void iniciarBotonera(String address){
+
+        Intent i = new Intent(MainActivity.this, botoneraManual.class);
+        i.putExtra(EXTRA_ADDRESS, address);
+        startActivity(i);
+        btAdapter.cancelDiscovery();
     }
 
     void mostrarListaDispositivos(){
@@ -95,9 +160,7 @@ public class MainActivity extends AppCompatActivity {
             String info = ((TextView) v).getText().toString();
             String address = info.substring(info.length() - 17);
             //inicio nueva actividad:
-            Intent i = new Intent(MainActivity.this, botoneraManual.class);
-            i.putExtra(EXTRA_ADDRESS, address);
-            startActivity(i);
+           iniciarBotonera(address);
         }
     };
 

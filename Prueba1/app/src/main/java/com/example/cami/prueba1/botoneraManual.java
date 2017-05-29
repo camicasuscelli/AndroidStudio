@@ -82,6 +82,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         desactivarBotones();
 
         incializarListeners();
+        new ConexionBT().execute();
     }
 
     @Override
@@ -198,7 +199,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         btnDis.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-                // desconectar();
+                desconectar();
                 msg("Desconectado");
             }
         });
@@ -278,7 +279,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
     }
 
-    void encenderLed(){
+  /*  void encenderLed(){
         if(btSocket!=null){
             try {
                 btSocket.getOutputStream().write("lucesDelanteroOn".toString().getBytes());
@@ -286,9 +287,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                 msg("Error");
             }
         }
-    }
+    }*/
 
-    void apagarLed(){
+ /*   void apagarLed(){
         if(btSocket!=null){
             try {
                 btSocket.getOutputStream().write("lucesDelanteroOff".toString().getBytes());
@@ -296,7 +297,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                 msg("Error");
             }
         }
-    }
+    }*/
 
     void desconectar(){
         //si el socket esta ocupado
@@ -310,14 +311,52 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         finish(); //vuelve al primer layout.
 
     }
+
+    private class ConexionBT extends AsyncTask<Void, Void, Void>{
+
+        private boolean conexionExitosa = true;
+
+        @Override
+        protected void onPreExecute(){
+            msg("Conectando bt");
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try{
+                if(btSocket == null || !isBtConnected){
+                    btAdapter = BluetoothAdapter.getDefaultAdapter();
+                    BluetoothDevice dispositivo = btAdapter.getRemoteDevice(address);
+                    btSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(miUUID);
+                    BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+                    btSocket.connect();
+                }
+            } catch(IOException e) {
+                conexionExitosa = false;
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            if(!conexionExitosa){
+                msg("falló la conexión");
+                finish();
+            }
+            else{
+                msg("conectado");
+                isBtConnected = true;
+            }
+            progress.dismiss();
+        }
+    }
+
 }
 
-    ///////////////////////esta clase se descarta y se genera un servicio para envíar los datos.
-    //Esta clase inicia la conexión:
 
-    //FALTA LLAMAR A LA CLASE PARA CONECTAR
 
-/*    private class ConnectBT extends AsyncTask<Void, Void, Void>{
+    /*class ConnectBT extends AsyncTask<Void, Void, Void>{
         private boolean ConnectSuccess = true;
 
         @Override
@@ -356,9 +395,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             }
             progress.dismiss();
         }
-    }
+    }*/
 
-}*/
+
 
 //aclaracion: los listener de los sensores deberian ir en onresume para evitar que se ejecuten cuando esta onpause
 //los listener de botones pueden estar en start, no hay problema.
