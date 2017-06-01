@@ -4,7 +4,19 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.hardware.sensor.accelerometer"/>
+    <uses-permission android:name="android.hardware.sensor.accelerometer" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <receiver
+        android:name="bReceiver"
+        android:enabled="true">
+        <intent-filter>
+            <action android:name="android.bluetooth.adapter.action.ACTION_FOUND"/>
+            <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
+        </intent-filter>
+    </receiver>
 
     <application
         android:allowBackup="true"
@@ -21,7 +33,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".botoneraManual"></activity>
+        <activity android:name=".botoneraManual" />
+
+        <service
+            android:name=".servicioMensajeria"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

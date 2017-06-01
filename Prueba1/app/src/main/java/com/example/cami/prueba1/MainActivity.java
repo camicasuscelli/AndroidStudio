@@ -1,8 +1,12 @@
 package com.example.cami.prueba1;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.os.Build;
+import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -29,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter btAdapter=null;
     private Set<BluetoothDevice> dispositivosVisibles;
 
+    //esta lista contiene los dispositivos visibles.
+    final ArrayList lista = new ArrayList();
+
     //creo las variables del xml.
     Button btnShowDevices, btnSearchDev;
     ListView lvListaDispositivos, lvListaAvailable;
@@ -44,6 +51,10 @@ public class MainActivity extends AppCompatActivity {
         lvListaDispositivos = (ListView) findViewById(R.id.lvListaDispositivos);
         btnSearchDev = (Button) findViewById(R.id.btnbuscardisp);
         lvListaAvailable = (ListView) findViewById(R.id.lvDevDisp);
+
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(bReceiver, filter);
+        msg("acabo de registrar el br");
 
         //muestro por pantalla que está pasando al estado Created.
         Toast.makeText(this, "On-create()",Toast.LENGTH_LONG).show();
@@ -85,30 +96,63 @@ public class MainActivity extends AppCompatActivity {
         btAdapter.cancelDiscovery();
     }
 
+
+    private final BroadcastReceiver bReceiver = new BroadcastReceiver() {
+
+        public void onReceive(Context context, Intent intent) {
+            msg("esta recibiendo cosas");
+            String accion = intent.getAction();
+            //cuando encuentra dispositivo:
+            if(BluetoothDevice.ACTION_FOUND.equals(accion)){
+                //obtengo el device:
+                BluetoothDevice dispositivo = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                lista.add(dispositivo.getName() + "\n" + dispositivo.getAddress());
+            }
+        }
+    };
     private void buscarDispositivos() {
+
+        int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+        /*if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+            // Show alert dialog to the user saying a separate permission is needed
+            // Launch the settings activity if the user prefers
+            Intent myIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+            startActivity(myIntent);
+        }*/
+        btAdapter.startDiscovery();
+        msg("activo el boton");
+        ArrayAdapter adaptador = new ArrayAdapter(getApplicationContext(), android.R.layout.simple_list_item_1, lista);
+        lvListaAvailable.setAdapter(adaptador);
+
         //creo un receptor de broadcast
-        final  ArrayList lista = new ArrayList();
-        final BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        //final  ArrayList lista = new ArrayList();
+
+        /*final BroadcastReceiver bReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-
+                msg("entra al broadcast receiver");
                 String action = intent.getAction();
                 //cuando encuentra un dispositivo:
                 if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                     //obtengo el device del intent
                     BluetoothDevice dispositivo = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     //lo muestro en una lista de adaptadores.
+                    //lista.add(dispositivo.getName() + "\n" + dispositivo.getAddress());
                     lista.add(dispositivo.getName() + "\n" + dispositivo.getAddress());
+                    ArrayAdapter<String> adaptador = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_list_item_1, lista);
+                    lvListaAvailable.setAdapter(adaptador);
                 }
-            }
-        };
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(bReceiver, filter);
-        final ArrayAdapter adaptador = new ArrayAdapter(this, android.R.layout.simple_list_item_1, lista);
-        lvListaAvailable.setAdapter(adaptador);
-        lvListaAvailable.setOnItemClickListener(listener);
 
+            }
+        };*/
+        //IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        //registerReceiver(bReceiver, filter);
+        //final ArrayAdapter adaptador = new ArrayAdapter(this, android.R.layout.simple_list_item_1, lista);
+        //lvListaAvailable.setAdapter(adaptador);
+        //lvListaAvailable.setOnItemClickListener(listener);
     }
+
     private AdapterView.OnItemClickListener listener = new AdapterView.OnItemClickListener(){
         public void onItemClick(AdapterView av, View v, int arg2, long arg3){
 
@@ -116,15 +160,20 @@ public class MainActivity extends AppCompatActivity {
             //obtengo la mac del dispositivo, los ultimos 17 char
             String info = ((TextView) v).getText().toString();
             String address = info.substring(info.length() - 17);
+
+            Toast.makeText(getApplicationContext(),"Se selecciono un item", Toast.LENGTH_LONG).show();
             //una vez que obtengo los datos del dispositivo tengo que hacer que se conozcan:
 
             //FALTA EL SUBPROCESO QUE CONECTA EL BLUETOOTH CON EL OTRO DISPOSITIVO.
 
             //inicio nueva actividad:
             //tengo que hacerlo un método.
-            iniciarBotonera(address);
+           // iniciarBotonera(address);
         }
     };
+    void msg(String m){
+        Toast.makeText(getApplicationContext(), m, Toast.LENGTH_LONG).show();
+    }
 
     void iniciarBotonera(String address){
 
@@ -136,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
 
     void mostrarListaDispositivos(){
 
-        //dispositivosVisibles = btAdapter.getBondedDevices();
+
         dispositivosVisibles = btAdapter.getBondedDevices();
         ArrayList lista = new ArrayList();
 
