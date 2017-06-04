@@ -8,6 +8,8 @@ import android.hardware.SensorManager;
 import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.util.Log;
@@ -23,9 +25,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.AsyncTask;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
+//import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+
 
 public class botoneraManual extends AppCompatActivity implements SensorEventListener{
 
@@ -38,6 +45,8 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     BluetoothSocket btSocket = null;
     private boolean isBtConnected = false;
     static final UUID miUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private ConnectedThread mConnectedThread;
+    private Handler bluetoothIn;
 
     private final int REQ_CODE_SPEECH_INPUT = 100;
     //declaro un sensor manager
@@ -74,6 +83,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     protected void onStart() {
         super.onStart();
 
+        bluetoothIn = new Handler();
         //recibo la direccion del dispositivo bluetooth.
         Intent newint = getIntent();
         address = newint.getStringExtra(MainActivity.EXTRA_ADDRESS);
@@ -82,6 +92,33 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         desactivarBotones();
 
         incializarListeners();
+
+        //Creo la conexion y escucha con el dispositivo
+
+        //create device and set the MAC address
+        BluetoothDevice device = btAdapter.getRemoteDevice(address);
+
+        try {
+            btSocket = device.createRfcommSocketToServiceRecord(miUUID);
+        } catch (IOException e) {
+            Toast.makeText(getBaseContext(), "La conexion fallo", Toast.LENGTH_LONG).show();
+            // Establecemos la conexion con el socket
+        }
+
+        try
+        {
+            btSocket.connect();
+        } catch (IOException e) {
+            try
+            {
+                btSocket.close();
+            } catch (IOException e2)
+            {
+                //que hacer en este caso
+            }
+        }
+        mConnectedThread = new ConnectedThread(btSocket);
+        mConnectedThread.start();
     }
 
     @Override
@@ -91,6 +128,14 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         //REGISTRAR SENSOR:
         registerSenser();
 
+        bluetoothIn = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+
+                String message = (String) msg.obj;
+                //implementar el switch para saber que tipo de mensaje es.
+            }
+        };
     }
 
     @Override
@@ -103,6 +148,10 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     protected void onPause(){
         unregisterSenser();
         super.onPause();
+
+        //cierro la conexion
+        desconectar();
+
     }
 
     @Override
@@ -297,9 +346,10 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             }
         }
     }
+    ////////////////////METODOS PARA CONEXION DE DISPOSITIVO////////////////////////
 
     void desconectar(){
-        //si el socket esta ocupado
+        //si el socket esta ocupado o cierro la app
         if(btSocket!=null){
             try {
                 btSocket.close();
@@ -310,7 +360,79 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         finish(); //vuelve al primer layout.
 
     }
+
+    //Verifico si el disposito Bluetooth es disponible and prompts to be turned on if off
+    private void checkBTState() {
+
+        if(btAdapter==null) {
+            Toast.makeText(getBaseContext(), "El dispositivo no soporta Bluetooth", Toast.LENGTH_LONG).show();
+        } else {
+            if (btAdapter.isEnabled()) {
+            } else {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, 1);
+            }
+        }
+    }
+
+    //Creo una clase que utilzia un thread para la comunicacion entre los dispositivos
+    private class ConnectedThread extends Thread {
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+        //Creacion del hilo de conexion
+        public ConnectedThread(BluetoothSocket socket) {
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            try {
+                //Creo I/O streams para la conexion
+                tmpIn = socket.getInputStream();
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) { }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+        //metodo principal que corre en segundo plano. Escucha siempre el buffer de entrada y cuando
+        //optiene un dato lo envia por el handle
+        public void run() {
+            byte[] buffer = new byte[256];
+            int bytes;
+
+            // loop que escucha
+            while (true) {
+                try {
+                    //lee byte del buffer y lo transforma en string. Para enviar datos via handle
+                    // debo enviar un objeto message.
+                    bytes = mmInStream.read(buffer);
+                    String readMessage = new String(buffer, 0, bytes);
+                    Message message = Message.obtain(); // Creo instancia de Message
+                    message.obj = message; // pongo el string en el campo obj del  Message
+                    message.setTarget(bluetoothIn); // seteo el Handler
+                    message.sendToTarget(); //envio el  mensaje.
+                } catch (IOException e) {
+                    //ver que hacer.
+                }
+            }
+        }
+        //Metodo para escribir
+        public void write(String input) {
+            //convierto a byte
+            byte[] msgBuffer = input.getBytes();
+            try {
+                //Escribo en el buffer de salida.
+                mmOutStream.write(msgBuffer);
+            } catch (IOException e) {
+                //Ver que hacer si no puedo escribir
+            }
+        }
+    }
+
+////////////////////////////////////////////////////////////////////////////////
+
 }
+
 
     ///////////////////////esta clase se descarta y se genera un servicio para envíar los datos.
     //Esta clase inicia la conexión:
