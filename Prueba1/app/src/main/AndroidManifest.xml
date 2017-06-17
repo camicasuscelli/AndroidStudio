@@ -13,8 +13,9 @@
         android:name="bReceiver"
         android:enabled="true">
         <intent-filter>
-            <action android:name="android.bluetooth.adapter.action.ACTION_FOUND"/>
-            <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
+
+            <action android:name="android.bluetooth.BluetoothAdapter"/>
+            <action android:name="android.bluetooth.adapter.action.FOUND_ACTION"/>
         </intent-filter>
     </receiver>
 

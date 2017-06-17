@@ -5,6 +5,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
+import android.os.Message;
 import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,9 +25,13 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.AsyncTask;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
+
 
 public class botoneraManual extends AppCompatActivity implements SensorEventListener{
 
@@ -38,13 +44,18 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     BluetoothSocket btSocket = null;
     private boolean isBtConnected = false;
     static final UUID miUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
+    //static final UUID miUUID = UUID.randomUUID();
     private final int REQ_CODE_SPEECH_INPUT = 100;
     //declaro un sensor manager
     private SensorManager sensorManager;
 
+    //creo variable para manejar comunicacion
+    private Comunicacion comunicacion = null;
+
     private final static float ACC = 15;
     int flagLuces=0;
+
+    public Handler handlerAct;
 
     //////////////////fases del ciclo de vida de la activity.
     @Override
@@ -82,6 +93,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         desactivarBotones();
 
         incializarListeners();
+        //Log.i("dirección", address);
         new ConexionBT().execute();
     }
 
@@ -105,6 +117,8 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         unregisterSenser();
         super.onPause();
     }
+
+    ///////////////////fin fases de ciclo de vida/////////////////////
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -135,6 +149,8 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         }
     }
 
+
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -152,8 +168,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             Toast.makeText(getApplicationContext(),getResources().getString(R.string.sensor_unsupported), Toast.LENGTH_SHORT).show();
         }
         Log.i("sensor", "register");
-        msg("sensor encendido");
+        //msg("sensor encendido");
     }
+
 
     private void unregisterSenser(){
         sensorManager.unregisterListener(this);
@@ -161,7 +178,31 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         msg("sensor apagado");
     }
 
+
     private void incializarListeners() {
+
+        handlerAct = new Handler(){
+            @Override
+            public void handleMessage(android.os.Message msj){
+                //supongamos que los primeros char son el tipo de mensaje y el resto es el valor.
+
+                String mensajito = msj.toString();
+                String codigo = mensajito.substring(0,2);
+                String valor = mensajito.substring(2);
+                switch(codigo){
+                    case "Luces":
+                        //escribo lo que está en luces
+                        break;
+                    case "Lluvia":
+                        //escribo lo que está en lluvia
+                        break;
+                    case "Distancia":
+                        //escribo lo que está en distancia
+                        break;
+                }
+            }
+        };
+
         checkBox.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
@@ -169,7 +210,6 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                     //si está marcado es porque tengo que activar todos los
                     //botones.
                     activarBotones();
-                    msg("ModoManual");
                 }
                 if(checkBox.isChecked()==false){
                     desactivarBotones();
@@ -182,16 +222,18 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         btnLedOn.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-                //encenderLed();
-                msg("encenderled");
+
+                comunicacion.write("lucesDelanteroOn".toString().getBytes());
+
             }
         });
 
         btnLedOff.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
-                //apagarLed();
-                msg("apagar led");
+
+                comunicacion.write("lucesDelanteroOff".toString().getBytes());
+
             }
 
         });
@@ -199,8 +241,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         btnDis.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
+
                 desconectar();
-                msg("Desconectado");
+
             }
         });
 
@@ -213,6 +256,8 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         });
 
     }
+
+    ////////////////////METODOS PARA SPEECHTOTEXT/////////////////////////
 
     private void speechInput() {
         //voy a mostrar un cuadro de dialogo para hablar y debería reconocer la voz.
@@ -252,7 +297,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         }
     }
 
-    private void modoAutomatico(){
+    //////////////FIN SPEECHTOTEXT////////////////////
+
+    /*private void modoAutomatico(){
 
         if(btSocket!=null){
             try {
@@ -262,7 +309,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             }
         }
 
-    }
+    }*/
 
     private void activarBotones() {
         btnLedOn.setClickable(true);
@@ -278,6 +325,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     private void msg(String s){
         Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
     }
+
 
   /*  void encenderLed(){
         if(btSocket!=null){
@@ -315,24 +363,33 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     private class ConexionBT extends AsyncTask<Void, Void, Void>{
 
         private boolean conexionExitosa = true;
+        BluetoothSocket tmp = null;
 
         @Override
         protected void onPreExecute(){
-            msg("Conectando bt");
+
+            //msg("Conectando bt");
+            progress = ProgressDialog.show(botoneraManual.this, "conectando..", "Por favor espere!");
         }
 
         @Override
         protected Void doInBackground(Void... params) {
+
             try{
+
                 if(btSocket == null || !isBtConnected){
+                    Log.i("conexión", "Proceso de conexión");
                     btAdapter = BluetoothAdapter.getDefaultAdapter();
                     BluetoothDevice dispositivo = btAdapter.getRemoteDevice(address);
                     btSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(miUUID);
                     BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
                     btSocket.connect();
+                    //una vez que conecto el socket, creo el hilo de mensajeria:
+                    comunicacion = new Comunicacion(btSocket);
                 }
             } catch(IOException e) {
                 conexionExitosa = false;
+                Log.i("error", e.toString());
             }
             return null;
         }
@@ -352,53 +409,157 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         }
     }
 
-}
+    private interface MessageConstants {
+        public static final int MESSAGE_READ = 0;
+        public static final int MESSAGE_WRITE = 1;
+        //public static final int MESSAGE_TOAST = 2;
+       /* public static final int MESSAGE_ENCENDERLUCES = 3;
+        public static final int MESSAGE_APAGARLUCES = 4;
+        public static final int MESSAGE_SERVODON = 5;
+        public static final int MESSAGE_SERVODOFF = 6;
+        public static final int MESSAGE_SERVOTON = 7;
+        public static final int MESSAGE_SERVOTOFF = 8;
+        public static final int MESSAGE_MARCHAATRAS = 9;
+        public static final int MESSAGE_DISPLAY = 10;
+        public static final int MESSAGE_MANUAL = 11;
+        public static final int MESSAGE_AUTOMATICO = 12;
+        public static final int MESSAGE_ILUCES = 13;
+        public static final int MESSAGE_IDISTANCIA = 14;
+        public static final int MESSAGE_LLUVIA = 15;*/
+    }
 
 
+    /*private void ejecutarComunicacion(BluetoothSocket socket){
 
-    /*class ConnectBT extends AsyncTask<Void, Void, Void>{
-        private boolean ConnectSuccess = true;
+        final Handler miHandler = new Handler();
 
-        @Override
-        protected void onPreExecute(){
-            progress = ProgressDialog.show(botoneraManual.this,"Connecting","Please wait");
+        final BluetoothSocket thSocket = socket;
+        final InputStream mInputStream = null;
+        final OutputStream mOutputStream = null;
+
+
+        try{
+            mInputStream = socket.getInputStream();
+        }catch(IOException e){
+            Log.e("error:", "Error ocurrio creando input stream");
         }
 
-        @Override
-        protected Void doInBackground(Void... params) {
-            try{
-                if (btSocket == null || !isBtConnected){
-                    btAdapter = BluetoothAdapter.getDefaultAdapter();
-                    BluetoothDevice dispositivo = btAdapter.getRemoteDevice(address);
-                    btSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(miUUID);
-                    BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                    //empezar la conexión
-                    btSocket.connect();
+        //creo output stream.
+        try{
+            mOutputStream = socket.getOutputStream();
+        }catch(IOException e){
+            Log.e("error", "error al crear un output stream");
+        }
+
+        //creo un thread que implementa un runnable para poder actualizar pantalla.
+        new Thread(new Runnable(){
+
+            @Override
+            public void run(){
+
+                byte[] miBuffer = new byte[1024];
+                int numBytes;
+
+                while(true){
+
+                    try{
+
+                        //leo input stream
+                        numBytes = mInputStream.read(miBuffer);
+
+                        Message leerMsj = miHandler.obtainMessage(MessageConstants.MESSAGE_READ, numBytes, -1, miBuffer);
+
+                        leerMsj.sendToTarget();
+                        //FALTA AGREGAR UN HANDLER EN EL LADO DE LA ACTIVITY PARA LEER LOS MENSAJES.
+                    }catch(IOException e){
+                        Log.e("error", "Input stream fue desconectado");
+                        break;
+                    }
                 }
-            }catch (IOException e){
-                ConnectSuccess = false;
+
             }
-            return null;
-        }
 
-        @Override
-        protected void onPostExecute (Void result){
-            super.onPostExecute(result);
+        });
 
-            if(!ConnectSuccess){
-                Toast.makeText(getApplicationContext(),"Conexión fallo, intente de nuevo",Toast.LENGTH_LONG).show();
-
-                finish();
-            }else {
-                Toast.makeText(getApplicationContext(),"Conectado",Toast.LENGTH_LONG).show();
-                isBtConnected = true;
-            }
-            progress.dismiss();
-        }
     }*/
+    private class Comunicacion extends Thread{
+
+        private Handler miHandler = new Handler();
+
+        private final BluetoothSocket thSocket;
+        private final InputStream mInputStream;
+        private final OutputStream mOutputStream;
+        private byte[] miBuffer;
+
+        public Comunicacion(BluetoothSocket socket){
+
+            thSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            //obtengo output e input streams, uso objetos temporales porque
+            //los streams son finales.
 
 
+            try{
+                tmpIn = socket.getInputStream();
+            }catch(IOException e){
+                Log.e("error:", "Error ocurrio creando input stream");
+            }
 
+            //creo output stream.
+            try{
+                tmpOut = socket.getOutputStream();
+            }catch(IOException e){
+                Log.e("error", "error al crear un output stream");
+            }
+
+            mInputStream = tmpIn;
+            mOutputStream = tmpOut;
+        }
+
+        public void run(){
+            //mientras se ejecuta lee los inputstream para ver si llegó algo.
+            miBuffer = new byte[1024];
+            int numBytes;
+
+            while(true){
+
+                try{
+
+                    //leo input stream
+                    numBytes = mInputStream.read(miBuffer);
+
+                }catch(IOException e){
+                    Log.e("error", "Input stream fue desconectado");
+                    break;
+                }
+
+
+            }
+        }
+
+        public void write(byte[] bytes){
+            try{
+                mOutputStream.write(bytes);
+                Log.i("envio:","entre a enviar mensaje");
+                //muestra el mensaje enviado a la activity
+                //no es necesario.
+            }catch(IOException e){
+                Log.e("error","sucedio un error enviando datos");
+                Toast.makeText(getApplicationContext(),"no se pudo enviar el mensaje", Toast.LENGTH_LONG).show();
+            }
+        }
+
+        public void cancel(){
+            try{
+                thSocket.close();
+            }catch(IOException e){
+                Log.e("error","no se pudo cerrar el socket");
+            }
+        }
+   }
+}
 //aclaracion: los listener de los sensores deberian ir en onresume para evitar que se ejecuten cuando esta onpause
 //los listener de botones pueden estar en start, no hay problema.
 //tenemos que tener un servicio donde se hace la mensajería hacia y desde arduino, y tenemos que recibir datos de arduino a la app.
