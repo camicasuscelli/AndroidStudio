@@ -40,12 +40,12 @@
         android:layout_width="365dp"
         android:layout_height="482dp"
         android:id="@+id/constraintLayout4"
-        android:layout_marginLeft="10dp"
-        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginLeft="9dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginStart="8dp"
-        app:layout_constraintVertical_bias="0.275">
+        app:layout_constraintVertical_bias="0.482"
+        app:layout_constraintLeft_toRightOf="@+id/tableLayout4">
 
         <TextView
             android:id="@+id/textView9"
@@ -65,29 +65,29 @@
             android:layout_marginLeft="2dp"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginTop="372dp"></LinearLayout>
+            android:layout_marginTop="372dp"
+            android:id="@+id/linearLayout4"></LinearLayout>
 
         <ImageButton
             android:id="@+id/ibhablar"
             android:layout_width="62dp"
             android:layout_height="44dp"
-            android:layout_marginLeft="25dp"
+            android:layout_marginLeft="17dp"
             android:layout_marginTop="400dp"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@android:drawable/presence_audio_online" />
 
-        <EditText
+        <TextView
             android:id="@+id/txtLuces"
-            android:layout_width="74dp"
-            android:layout_height="18dp"
-            android:ems="10"
-            android:inputType="textPersonName"
-            android:text="Name"
-            android:layout_marginBottom="82dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            android:layout_marginRight="82dp"
-            app:layout_constraintRight_toRightOf="parent" />
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="106dp"
+            android:layout_marginTop="11dp"
+            android:text="Esperado datos"
+            app:layout_constraintLeft_toRightOf="@+id/ibhablar"
+            app:layout_constraintTop_toTopOf="@+id/linearLayout4" />
+
     </android.support.constraint.ConstraintLayout>
 
     <CheckBox
@@ -132,7 +132,8 @@
         android:layout_marginTop="95dp"
         android:text="LED ON"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout4"
-        app:layout_constraintTop_toTopOf="@+id/constraintLayout4" />
+        app:layout_constraintTop_toTopOf="@+id/constraintLayout4"
+        tools:clickable="false" />
 
     <Button
         android:id="@+id/btnledoff"
@@ -143,7 +144,8 @@
         android:layout_marginTop="95dp"
         android:text="LED OFF"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout4"
-        app:layout_constraintTop_toTopOf="@+id/constraintLayout4" />
+        app:layout_constraintTop_toTopOf="@+id/constraintLayout4"
+        tools:clickable="false" />
 
     <TextView
         android:id="@+id/textView8"
@@ -246,16 +248,16 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Estado luces:"
-        android:layout_marginLeft="111dp"
+        android:layout_marginLeft="87dp"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout4"
         app:layout_constraintTop_toTopOf="@+id/constraintLayout4"
-        android:layout_marginTop="383dp" />
+        android:layout_marginTop="384dp" />
 
     <TextView
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="111dp"
+        android:layout_marginLeft="89dp"
         android:layout_marginTop="439dp"
         android:text="Lluvia:"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout4"
@@ -265,10 +267,30 @@
         android:id="@+id/textView4"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="111dp"
+        android:layout_marginLeft="87dp"
         android:layout_marginTop="411dp"
         android:text="Distancia:"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout4"
         app:layout_constraintTop_toTopOf="@+id/constraintLayout4" />
+
+    <TextView
+        android:id="@+id/txtDistancia"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="37dp"
+        android:layout_marginTop="50dp"
+        android:text="Esperado datos"
+        app:layout_constraintLeft_toRightOf="@+id/textView4"
+        app:layout_constraintTop_toBottomOf="@+id/btnservotoff" />
+
+    <TextView
+        android:id="@+id/txtLluvia"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="57dp"
+        android:layout_marginTop="78dp"
+        android:text="Esperado datos"
+        app:layout_constraintLeft_toRightOf="@+id/textView3"
+        app:layout_constraintTop_toBottomOf="@+id/btnservotoff" />
 
 </android.support.constraint.ConstraintLayout>
