@@ -186,7 +186,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             public void handleMessage(android.os.Message msj){
                 //supongamos que los primeros char son el tipo de mensaje y el resto es el valor.
 
-                String mensajito = msj.toString();
+                String mensajito = msj.obj.toString();
                 String codigo = mensajito.substring(0,2);
                 String valor = mensajito.substring(2);
                 switch(codigo){
