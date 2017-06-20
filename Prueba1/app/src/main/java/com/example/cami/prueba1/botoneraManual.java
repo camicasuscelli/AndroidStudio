@@ -3,12 +3,19 @@ package com.example.cami.prueba1;
         import java.io.IOException;
         import java.io.InputStream;
         import java.io.OutputStream;
+        import java.sql.Time;
+        import java.util.Calendar;
+        import java.util.Date;
         import java.util.UUID;
         import android.app.Activity;
         import android.bluetooth.BluetoothAdapter;
         import android.bluetooth.BluetoothDevice;
         import android.bluetooth.BluetoothSocket;
         import android.content.Intent;
+        import android.hardware.Sensor;
+        import android.hardware.SensorEvent;
+        import android.hardware.SensorEventListener;
+        import android.hardware.SensorManager;
         import android.os.Bundle;
         import android.os.Handler;
         import android.util.Log;
@@ -21,8 +28,14 @@ package com.example.cami.prueba1;
         import android.widget.TextView;
         import android.widget.Toast;
 
-public class botoneraManual extends Activity {
+        import static android.hardware.camera2.CaptureResult.SENSOR_SENSITIVITY;
 
+
+public class botoneraManual extends Activity implements SensorEventListener {
+
+    private SensorManager mSensorManager;
+    private Sensor proximitySensor;
+    private Sensor accelerometerSensor;
     Button btnLedOn, btnLedOff, btnDis, btnServoDOn, btnServoDOff, btnServoTOn, btnServoTOff;
     CheckBox checkBox;
     TextView txtArduino, txtString, txtStringLength, sensorView0, sensorView1, sensorView2, sensorView3;
@@ -43,10 +56,16 @@ public class botoneraManual extends Activity {
 
     // String for MAC address
     private static String address = null;
+    boolean lucesSensorProximidad = false;
+    Date date = new Date();
+    int ACC = 15;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        proximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
 
         Toast.makeText(getBaseContext(), "Conexión establecida", Toast.LENGTH_SHORT).show();
 
@@ -64,11 +83,15 @@ public class botoneraManual extends Activity {
         txtLluvia  = (TextView)findViewById(R.id.txtLluvia);
 
 
+
+
+
+
         bluetoothIn = new Handler() {
             public void handleMessage(android.os.Message msj) {
                 if (msj.what == handlerState) {          //if message is what we want
                     String readMessage = (String) msj.obj; // msg.arg1 = bytes from connect thread
-                    Log.d("readMessage:", readMessage);
+                    //Log.d("readMessage:", readMessage);
                     String[] value_split = readMessage.split("\\|");
                     if(value_split[0].equals("1"))
                         txtLluvia.setText("Esta lloviendo");
@@ -82,10 +105,9 @@ public class botoneraManual extends Activity {
                         txtDistancia.setText("No esta en marcha atras");
                     else
                     txtDistancia.setText(value_split[2].toString() + " Metros");
-                    Log.d("[0]:", value_split[0]);
+                    /*Log.d("[0]:", value_split[0]);
                     Log.d("[1]:", value_split[1]);
-                    Log.d("[2]:", value_split[2]);
-
+                    Log.d("[2]:", value_split[2]);*/
                 }
             }
         };
@@ -131,6 +153,7 @@ public class botoneraManual extends Activity {
         btnLedOff.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("lucesDelanteroOff");    // Send "0" via Bluetooth
+                lucesSensorProximidad = false;
                 Toast.makeText(getBaseContext(), "Apagar el LED", Toast.LENGTH_SHORT).show();
             }
         });
@@ -138,6 +161,7 @@ public class botoneraManual extends Activity {
         btnLedOn.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("lucesDelanteroOn");    // Send "1" via Bluetooth
+                lucesSensorProximidad = true;
                 Toast.makeText(getBaseContext(), "Encender el LED", Toast.LENGTH_SHORT).show();
             }
         });
@@ -189,7 +213,8 @@ public class botoneraManual extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-
+        mSensorManager.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+        accelerometerSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         //Get MAC address from DeviceListActivity via intent
         Intent intent = getIntent();
 
@@ -231,6 +256,7 @@ public class botoneraManual extends Activity {
     {
 
         super.onPause();
+        mSensorManager.unregisterListener(this);
         try
         {
             mConnectedThread.write("automatico");
@@ -253,6 +279,49 @@ public class botoneraManual extends Activity {
                 startActivityForResult(enableBtIntent, 1);
             }
         }
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+
+        int sensorType = event.sensor.getType();
+        float[] values = event.values;
+
+        if(sensorType == Sensor.TYPE_PROXIMITY) {
+            Date dateSensed = new Date();
+            Log.d("SensorProximidad", String.valueOf(event.values[0]));
+            Log.d("tiempo dateSensed", String.valueOf(dateSensed.getTime()));
+            Log.d("tiempo date", String.valueOf(date.getTime()));
+            if (dateSensed.getTime() < date.getTime() + 500) {
+                if (lucesSensorProximidad == true) {
+                    mConnectedThread.write("lucesDelanteroOff");
+                    lucesSensorProximidad = false;
+                } else {
+                    mConnectedThread.write("lucesDelanteroOn");
+                    lucesSensorProximidad = true;
+                }
+            } else {
+                date = dateSensed;
+            }
+        }
+        if (sensorType == Sensor.TYPE_ACCELEROMETER) {
+            Log.d("Acelerometro","cambio");
+            Log.d("0", String.valueOf(values[0]));
+            Log.d("1", String.valueOf(values[1]));
+            Log.d("2", String.valueOf(values[2]));
+            if (Math.abs(values[0]) > ACC || Math.abs(values[1]) > ACC || Math.abs(values[2]) > ACC) {
+                Log.d("sensor", "running");
+                //mandar mensaje
+            }
+        }
+
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 
     //create new class for connect thread
@@ -311,7 +380,6 @@ public class botoneraManual extends Activity {
                 //if you cannot write, close the application
                 Toast.makeText(getBaseContext(), "Conexión Terminada", Toast.LENGTH_LONG).show();
                 finish();
-
             }
         }
 
