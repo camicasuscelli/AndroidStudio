@@ -50,22 +50,33 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
 
     private ConnectedThread mConnectedThread;
 
-    Date date;
+    Date date, dateA;
+
+    long lastupdate;
 
     // SPP UUID service - this should work for most devices
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
+
+    boolean flagSH = true;
+    boolean servoSensorMovimiento = true;
     // String for MAC address
     private static String address = null;
+
+    private static final int SHAKE_THRESHOLD = 1500;
 
     //código para sensores de android
     private SensorManager sensorManager;
    // private ProgressDialog progress;
     ImageButton ibHablar;
     private final int REQ_CODE_SPEECH_INPUT = 100;
-    private final static float ACC = 15;
-    boolean flagShake = false;
     boolean lucesSensorProximidad = false;
+
+    int flagLuces = 0;
+
+    float last_x = 0;
+    float last_y = 0;
+    float last_z = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -95,6 +106,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         checkBTState();
 
         date = new Date();
+        dateA = new Date();
+
+        lastupdate = System.currentTimeMillis();
 
     }
 
@@ -190,9 +204,9 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                         txtDistancia.setText("No esta en marcha atras");
                     else
                         txtDistancia.setText(value_split[2].toString() + " Metros");
-                    Log.d("[0]:", value_split[0]);
-                    Log.d("[1]:", value_split[1]);
-                    Log.d("[2]:", value_split[2]);
+                    //Log.d("[0]:", value_split[0]);
+                    //Log.d("[1]:", value_split[1]);
+                    //Log.d("[2]:", value_split[2]);
 
                 }
             }
@@ -220,36 +234,36 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         btnServoTOff.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("servoTraseroOff");    // Send "0" via Bluetooth
-                Toast.makeText(getBaseContext(), "servoTraseroOff", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getBaseContext(), "servoTraseroOff", Toast.LENGTH_SHORT).show();
             }
         });
 
         btnServoTOn.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("servoTraseroOn");    // Send "1" via Bluetooth
-                Toast.makeText(getBaseContext(), "servoTraseroOn", Toast.LENGTH_SHORT).show();
+               // Toast.makeText(getBaseContext(), "servoTraseroOn", Toast.LENGTH_SHORT).show();
             }
         });
         btnServoDOff.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("servoDelanteroOff");    // Send "0" via Bluetooth
-                flagShake = true;
-                Toast.makeText(getBaseContext(), "servoDelanteroOff", Toast.LENGTH_SHORT).show();
+                servoSensorMovimiento = false;
+
             }
         });
 
         btnServoDOn.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("servoDelanteroOn");    // Send "1" via Bluetooth
-                flagShake = false;
-                Toast.makeText(getBaseContext(), "servoDelanteroOn", Toast.LENGTH_SHORT).show();
+                servoSensorMovimiento = true;
+
             }
         });
         btnLedOff.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 mConnectedThread.write("lucesDelanteroOff");    // Send "0" via Bluetooth
                 lucesSensorProximidad = false;
-                Toast.makeText(getBaseContext(), "Apagar el LED", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getBaseContext(), "Apagar el LED", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -257,7 +271,7 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
             public void onClick(View v) {
                 mConnectedThread.write("lucesDelanteroOn");    // Send "1" via Bluetooth
                 lucesSensorProximidad = true;
-                Toast.makeText(getBaseContext(), "Encender el LED", Toast.LENGTH_SHORT).show();
+
             }
         });
         checkBox.setOnClickListener(new View.OnClickListener(){
@@ -298,14 +312,18 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
     }
 
     private void registrarSensores() {
-        boolean doneA, doneP;
-        //done = sensorManager.registerListener(this,sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
-        doneA = sensorManager.registerListener((SensorEventListener) this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        boolean doneA, doneP, doneL;
+
+        doneA = sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
         doneP = sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY), SensorManager.SENSOR_DELAY_NORMAL);
+        doneL = sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_NORMAL);
         if(!doneA){
             Toast.makeText(getApplicationContext(),getResources().getString(R.string.sensor_unsupported), Toast.LENGTH_SHORT).show();
         }
         if(!doneP){
+            Toast.makeText(getApplicationContext(),getResources().getString(R.string.sensor_unsupported), Toast.LENGTH_SHORT).show();
+        }
+        if(!doneL){
             Toast.makeText(getApplicationContext(),getResources().getString(R.string.sensor_unsupported), Toast.LENGTH_SHORT).show();
         }
         Log.i("sensor", "register");
@@ -323,33 +341,87 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
         float[] values = event.values;
 
         if (sensorType == Sensor.TYPE_ACCELEROMETER){
-            if(Math.abs(values[0]) > ACC || Math.abs(values[1]) > ACC || Math.abs(values[2]) > ACC) {
-                Log.i("sensor", "running");
+
+            long curTime = System.currentTimeMillis();
+            // only allow one update every 100ms.
+            if ((curTime - lastupdate) > 100) {
+                long diffTime = (curTime - lastupdate);
+                lastupdate = curTime;
+
+                float x = values[SensorManager.DATA_X];
+                float y = values[SensorManager.DATA_Y];
+                float z = values[SensorManager.DATA_Z];
+
+                float speed = Math.abs(x+y+z - last_x - last_y - last_z) / diffTime * 10000;
+
+                Date dateSensedA = new Date();
+
+
+
+                if (speed > SHAKE_THRESHOLD) {
+                    if (dateSensedA.getTime() < dateA.getTime() + 500) {
+                        Log.d("sensor", "shake detected w/ speed: " + speed);
+                        Log.d("tiempo dateSensed", String.valueOf(dateSensedA.getTime()));
+                        Log.d("tiempo date", String.valueOf(dateA.getTime()));
+
+                        if (servoSensorMovimiento == true) {
+                            mConnectedThread.write("servoDelanteroOff");
+                            servoSensorMovimiento = false;
+                            Log.d("Sensor servo then:",String.valueOf(servoSensorMovimiento));
+                        } else {
+                            mConnectedThread.write("servoDelanteroOn");
+                            servoSensorMovimiento = true;
+                            Log.d("Sensor servo else:",String.valueOf(servoSensorMovimiento));
+                        }
+                    } else {
+                        dateA = dateSensedA;
+
+                    }
+                }
+
+                last_x = x;
+                last_y = y;
+                last_z = z;
+            }
+                /*Log.i("sensor", "running");
                 if(flagShake){
                     //si está en true, ya se activo, mando a desactivar
                     mConnectedThread.write("servoDOff");
 
-                }else mConnectedThread.write("servoDOn");
-            }
-        }
-        if(sensorType == Sensor.TYPE_PROXIMITY) {
-            Date dateSensed = new Date();
-            Log.d("SensorProximidad", String.valueOf(event.values[0]));
-            Log.d("tiempo dateSensed", String.valueOf(dateSensed.getTime()));
-            Log.d("tiempo date", String.valueOf(date.getTime()));
-            if (dateSensed.getTime() < date.getTime() + 500) {
-                if (lucesSensorProximidad == true) {
-                    mConnectedThread.write("lucesDelanteroOff");
-                    lucesSensorProximidad = false;
-                } else {
-                    mConnectedThread.write("lucesDelanteroOn");
-                    lucesSensorProximidad = true;
-                }
-            } else {
-                date = dateSensed;
-            }
-        }
+                }else mConnectedThread.write("servoDOn");*/
 
+        }
+            if (sensorType == Sensor.TYPE_PROXIMITY) {
+                Date dateSensed = new Date();
+                Log.d("SensorProximidad", String.valueOf(event.values[0]));
+                Log.d("tiempo dateSensed", String.valueOf(dateSensed.getTime()));
+                Log.d("tiempo date", String.valueOf(date.getTime()));
+                if (dateSensed.getTime() < date.getTime() + 500) {
+                    if (lucesSensorProximidad == true) {
+                        mConnectedThread.write("sensarOff");
+                        lucesSensorProximidad = false;
+                    } else {
+                        mConnectedThread.write("sensarOn");
+                        lucesSensorProximidad = true;
+                    }
+                } else {
+                    date = dateSensed;
+                }
+            }
+        if (sensorType == Sensor.TYPE_LIGHT){
+            if(Math.abs(values[0])<=50 && flagLuces==1){
+                Log.i("sensor luz", "evento");
+                //enviar luces on
+                mConnectedThread.write("lucesDelanteroOn");
+                flagLuces = 0;
+            }else{
+                if(Math.abs(values[0])>50 && flagLuces==0){
+                    Log.i("sensor luz", "apagar");
+                    mConnectedThread.write("lucesDelanteroOff");
+                    flagLuces = 1;
+                }
+            }
+        }
     }
 
     @Override
@@ -472,7 +544,6 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                         }
                     }
                 }
-
             }
         }
     }
