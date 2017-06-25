@@ -12,30 +12,11 @@
         android:layout_width="359dp"
         android:layout_height="486dp"
         android:id="@+id/constraintLayout2"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="9dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintRight_toRightOf="parent">
-
-        <Button
-            android:id="@+id/btnbuscardisp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="92dp"
-            android:layout_marginTop="238dp"
-            android:text="BUSCAR DISPOSITIVOS"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:layout_marginStart="92dp" />
-
-        <ListView
-            android:id="@+id/lvDevDisp"
-            android:layout_width="244dp"
-            android:layout_height="119dp"
-            android:layout_marginLeft="57dp"
-            android:layout_marginTop="294dp"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintHorizontal_bias="0.52">
 
         <TextView
             android:id="@+id/eConexion"
@@ -47,35 +28,24 @@
             app:layout_constraintRight_toRightOf="parent" />
     </android.support.constraint.ConstraintLayout>
 
-    <TextView
-        android:id="@+id/txtDispositivos"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Lista de dispositivos:"
-        android:layout_marginLeft="88dp"
-        app:layout_constraintLeft_toLeftOf="@+id/constraintLayout2"
-        app:layout_constraintTop_toTopOf="@+id/constraintLayout2"
-        android:layout_marginTop="73dp"
-        android:layout_marginStart="88dp" />
-
     <Button
         android:id="@+id/btnShowDevices"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Mostrar dispositivos"
         app:layout_constraintTop_toTopOf="@+id/constraintLayout2"
-        android:layout_marginTop="14dp"
-        android:layout_marginLeft="88dp"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="90dp"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout2"
         android:layout_marginStart="88dp" />
 
     <ListView
         android:id="@+id/lvListaDispositivos"
-        android:layout_width="244dp"
-        android:layout_height="108dp"
-        android:layout_marginLeft="57dp"
+        android:layout_width="246dp"
+        android:layout_height="253dp"
+        android:layout_marginLeft="60dp"
         android:layout_marginStart="54dp"
-        android:layout_marginTop="115dp"
+        android:layout_marginTop="137dp"
         app:layout_constraintLeft_toLeftOf="@+id/constraintLayout2"
         app:layout_constraintTop_toTopOf="@+id/constraintLayout2" />
 
