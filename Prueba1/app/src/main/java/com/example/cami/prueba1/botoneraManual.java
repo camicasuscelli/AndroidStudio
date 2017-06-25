@@ -5,8 +5,6 @@ package com.example.cami.prueba1;
         import java.io.OutputStream;
         import java.util.Date;
         import java.util.UUID;
-        import android.app.Activity;
-        import android.app.ProgressDialog;
         import android.bluetooth.BluetoothAdapter;
         import android.bluetooth.BluetoothDevice;
         import android.bluetooth.BluetoothSocket;
@@ -204,10 +202,6 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                         txtDistancia.setText("No esta en marcha atras");
                     else
                         txtDistancia.setText(value_split[2].toString() + " Metros");
-                    //Log.d("[0]:", value_split[0]);
-                    //Log.d("[1]:", value_split[1]);
-                    //Log.d("[2]:", value_split[2]);
-
                 }
             }
         };
@@ -383,13 +377,6 @@ public class botoneraManual extends AppCompatActivity implements SensorEventList
                 last_y = y;
                 last_z = z;
             }
-                /*Log.i("sensor", "running");
-                if(flagShake){
-                    //si está en true, ya se activo, mando a desactivar
-                    mConnectedThread.write("servoDOff");
-
-                }else mConnectedThread.write("servoDOn");*/
-
         }
             if (sensorType == Sensor.TYPE_PROXIMITY) {
                 Date dateSensed = new Date();
